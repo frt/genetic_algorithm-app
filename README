@@ -1,0 +1,21 @@
+Parallel Evolution Library Genetic Algorithm Application
+
+Genetic Algorithm application using the parallel_evolution-lib
+[http://github.com/frt/parallel_evolution-lib].
+
+
+HOWTO INSTALL THIS LIB FROM THE SOURCES 
+
+ * Generate the './configure' script:
+
+	$ aclocal
+	$ autoconf
+	$ automake --add-missing
+
+ * Configure and install:
+
+	$ ./configure
+	$ make
+	# make install
+        $ mpirun -n 4 ${prefix}/bin/genetic_algorithm-app   # to run the application (${prefix} defaults to `/usr/local`)
+

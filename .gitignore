@@ -1,0 +1,17 @@
+*.[ao]
+Makefile*
+!Makefile.am
+ar-lib
+compile
+.deps
+aclocal.m4
+autom4te.cache/
+build/
+config.status
+configure
+depcomp
+install-sh
+missing
+*.log
+*.results
+src/genetic_algorithm-app
