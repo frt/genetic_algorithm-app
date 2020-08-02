@@ -26,7 +26,11 @@ boolean assign_score(population *pop, entity *individual)
 
 void genetic_algorithm_init()
 {
-    genetic_algorithm.population = ga_genesis_double(
+    population *pop = genetic_algorithm.population;
+
+    ga_population_set_allele_min_double(pop, -12);
+    ga_population_set_allele_max_double(pop, 12);
+    pop = ga_genesis_double(
             250,                        /* const int              population_size */
             1,                          /* const int              num_chromo */
             50,                         /* const int              len_chromo */
