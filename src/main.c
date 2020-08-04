@@ -9,7 +9,7 @@
 
 #define MODULE_APP "genetic_algorithm-app"
 
-extern double (*parallel_evolution_fitness_func)(double*);           /* função de fitness (minimização) */
+extern double (*objective_function)(double*);           /* função de fitness (minimização) */
 
 typedef struct genetic_algorithm {
     population *population;
@@ -21,7 +21,8 @@ genetic_algorithm_t genetic_algorithm;
 
 boolean assign_score(population *pop, entity *individual)
 {
-    individual->fitness = parallel_evolution_fitness_func(individual->chromosome[0]);
+    // GAUL maximizes the fitness, the problem is of minimization, so:
+    individual->fitness = 1 / (1 + objective_function(individual->chromosome[0]));  // fitness in the interval (0, 1]
     return TRUE;
 }
 
