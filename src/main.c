@@ -9,6 +9,10 @@
 
 #define MODULE_APP "genetic_algorithm-app"
 
+// forward declarations
+// in ga_core.c
+boolean ga_entity_setup(population *pop, entity *joe);
+
 extern double (*objective_function)(double*);           /* função de fitness (minimização) */
 
 typedef struct genetic_algorithm {
@@ -23,6 +27,7 @@ boolean assign_score(population *pop, entity *individual)
 {
     // GAUL maximizes the fitness, the problem is of minimization, so:
     individual->fitness = 1 / (1 + objective_function(individual->chromosome[0]));  // fitness in the interval (0, 1]
+    genetic_algorithm.stats.fitness_evals += 1;
     return TRUE;
 }
 
@@ -57,6 +62,28 @@ void genetic_algorithm_run_iterations(int generations)
     genetic_algorithm.stats.iterations += ga_evolution(genetic_algorithm.population, generations);
 }
 
+void genetic_algorithm_insert_migrant(migrant_t *migrant)
+{
+    entity *new;
+    population *pop;
+    int i;
+
+    pop = genetic_algorithm.population;
+
+    // create new entity
+    new = (entity *)mem_chunk_alloc(pop->entity_chunk);
+    ga_entity_setup(pop, new);
+
+    // asign chromossome
+    for (i = 0; i < migrant->var_size; ++i) {
+        ((double *)new->chromosome[0])[i] = migrant->var[i];
+    }
+    assign_score(pop, new);
+
+    // insert into population
+    ga_replace_by_fitness(pop, new);
+}
+
 int main(int argc, char *argv[])
 {
     algorithm_t *genetic_algorithm;
@@ -89,7 +116,7 @@ int main(int argc, char *argv[])
     algorithm_create(&genetic_algorithm,
             genetic_algorithm_init,             // a wrapper around ga_genesis_double()
             genetic_algorithm_run_iterations,   // make a wrapper around ga_evolution()
-            genetic_algorithm_insert_migrant,   // TODO: void ga_replace_by_fitness(population *pop, entity *child);
+            genetic_algorithm_insert_migrant,   // a wrapper around ga_replace_by_fitness(population *pop, entity *child);
             genetic_algorithm_pick_migrant,     // TODO: ga_get_entity_from_rank(pop,0)
             genetic_algorithm_ended,            // TODO
             genetic_algorithm_get_population,   // TODO
