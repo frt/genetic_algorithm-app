@@ -13,6 +13,7 @@ extern double (*parallel_evolution_fitness_func)(double*);           /* função
 
 typedef struct genetic_algorithm {
     population *population;
+    algorithm_stats_t stats;
 } genetic_algorithm_t;
 
 /* this struct is the "global namespace" of genetic_algorithm algorithm */
@@ -50,11 +51,16 @@ void genetic_algorithm_init()
             );
 }
 
+void genetic_algorithm_run_iterations(int generations)
+{
+    genetic_algorithm.stats.iterations += ga_evolution(genetic_algorithm.population, generations);
+}
+
 int main(int argc, char *argv[])
 {
-	algorithm_t *genetic_algorithm;
-	int ret;
-	topology_t *topology;
+    algorithm_t *genetic_algorithm;
+    int ret;
+    topology_t *topology;
     char *topology_file;
     char topology_file_default[] = "ring.topology";
 
@@ -63,37 +69,37 @@ int main(int argc, char *argv[])
     else
         topology_file = topology_file_default;
 
-	/* create the topology */
-	if (topology_create(&topology) != SUCCESS) {
-		parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be created. Quit.");
-		return ERROR_TOPOLOGY_CREATE;
-	}
+    /* create the topology */
+    if (topology_create(&topology) != SUCCESS) {
+        parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be created. Quit.");
+        return ERROR_TOPOLOGY_CREATE;
+    }
 
-	/* parse topology from file */
-	if (topology_parser_parse(topology, topology_file) != SUCCESS) {
-		topology_destroy(&topology);
-		parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be parsed. This is the end...");
-		return ERROR_TOPOLOGY_PARSE;
-	}
+    /* parse topology from file */
+    if (topology_parser_parse(topology, topology_file) != SUCCESS) {
+        topology_destroy(&topology);
+        parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be parsed. This is the end...");
+        return ERROR_TOPOLOGY_PARSE;
+    }
 
-	parallel_evolution_set_topology(topology);
+    parallel_evolution_set_topology(topology);
 
-	parallel_evolution_set_number_of_dimensions(50);
-	algorithm_create(&genetic_algorithm,
-			genetic_algorithm_init,             // a wrapper around ga_genesis_double()
-			genetic_algorithm_run_iterations,   // TODO: make a wrapper around ga_evolution()
-			genetic_algorithm_insert_migrant,   // TODO: void ga_replace_by_fitness(population *pop, entity *child);
-			genetic_algorithm_pick_migrant,     // TODO: ga_get_entity_from_rank(pop,0)
-			genetic_algorithm_ended,            // TODO
-			genetic_algorithm_get_population,   // TODO
-			genetic_algorithm_get_stats);       // TODO: wrapper around ga_fitness_stats()
-	parallel_evolution_set_algorithm(genetic_algorithm);
-	parallel_evolution_set_migration_interval(100);
+    parallel_evolution_set_number_of_dimensions(50);
+    algorithm_create(&genetic_algorithm,
+            genetic_algorithm_init,             // a wrapper around ga_genesis_double()
+            genetic_algorithm_run_iterations,   // make a wrapper around ga_evolution()
+            genetic_algorithm_insert_migrant,   // TODO: void ga_replace_by_fitness(population *pop, entity *child);
+            genetic_algorithm_pick_migrant,     // TODO: ga_get_entity_from_rank(pop,0)
+            genetic_algorithm_ended,            // TODO
+            genetic_algorithm_get_population,   // TODO
+            genetic_algorithm_get_stats);       // TODO: wrapper around ga_fitness_stats()
+    parallel_evolution_set_algorithm(genetic_algorithm);
+    parallel_evolution_set_migration_interval(100);
 
-	ret = parallel_evolution_run(&argc, &argv);
-	
-	algorithm_destroy(&genetic_algorithm);
-	topology_destroy(&topology);
-	
-	return ret;
+    ret = parallel_evolution_run(&argc, &argv);
+
+    algorithm_destroy(&genetic_algorithm);
+    topology_destroy(&topology);
+
+    return ret;
 }
