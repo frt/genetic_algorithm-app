@@ -84,6 +84,17 @@ void genetic_algorithm_insert_migrant(migrant_t *migrant)
     ga_replace_by_fitness(pop, new);
 }
 
+void genetic_algorithm_pick_migrant(migrant_t *migrant)
+{
+    int i;
+    entity *best;
+
+    best = ga_get_entity_from_rank(genetic_algorithm.population, 0);
+    for (i = 0; i < migrant->var_size; ++i) {
+        migrant->var[i] = ((double *)best->chromosome[0])[i];
+    }
+}
+
 int main(int argc, char *argv[])
 {
     algorithm_t *genetic_algorithm;
@@ -117,7 +128,7 @@ int main(int argc, char *argv[])
             genetic_algorithm_init,             // a wrapper around ga_genesis_double()
             genetic_algorithm_run_iterations,   // make a wrapper around ga_evolution()
             genetic_algorithm_insert_migrant,   // a wrapper around ga_replace_by_fitness(population *pop, entity *child);
-            genetic_algorithm_pick_migrant,     // TODO: ga_get_entity_from_rank(pop,0)
+            genetic_algorithm_pick_migrant,     // a wrapper around ga_get_entity_from_rank(pop,0)
             genetic_algorithm_ended,            // TODO
             genetic_algorithm_get_population,   // TODO
             genetic_algorithm_get_stats);       // TODO: wrapper around ga_fitness_stats()
