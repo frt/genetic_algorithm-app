@@ -18,6 +18,7 @@ extern double (*objective_function)(double*);           /* função de fitness (
 typedef struct genetic_algorithm {
     population *population;
     algorithm_stats_t stats;
+    int max_generations;
 } genetic_algorithm_t;
 
 /* this struct is the "global namespace" of genetic_algorithm algorithm */
@@ -33,8 +34,11 @@ boolean assign_score(population *pop, entity *individual)
 
 void genetic_algorithm_init()
 {
-    population *pop = genetic_algorithm.population;
+    population *pop;
 
+    genetic_algorithm.max_generations = 50000;
+
+    pop = genetic_algorithm.population;
     ga_population_set_allele_min_double(pop, -12);
     ga_population_set_allele_max_double(pop, 12);
     pop = ga_genesis_double(
@@ -95,6 +99,11 @@ void genetic_algorithm_pick_migrant(migrant_t *migrant)
     }
 }
 
+int genetic_algorithm_ended()
+{
+    return genetic_algorithm.stats.iterations >= genetic_algorithm.max_generations;
+}
+
 int main(int argc, char *argv[])
 {
     algorithm_t *genetic_algorithm;
@@ -129,7 +138,7 @@ int main(int argc, char *argv[])
             genetic_algorithm_run_iterations,   // make a wrapper around ga_evolution()
             genetic_algorithm_insert_migrant,   // a wrapper around ga_replace_by_fitness(population *pop, entity *child);
             genetic_algorithm_pick_migrant,     // a wrapper around ga_get_entity_from_rank(pop,0)
-            genetic_algorithm_ended,            // TODO
+            genetic_algorithm_ended,
             genetic_algorithm_get_population,   // TODO
             genetic_algorithm_get_stats);       // TODO: wrapper around ga_fitness_stats()
     parallel_evolution_set_algorithm(genetic_algorithm);
