@@ -104,6 +104,15 @@ int genetic_algorithm_ended()
     return genetic_algorithm.stats.iterations >= genetic_algorithm.max_generations;
 }
 
+status_t genetic_algorithm_get_population(population_t **pop2send)
+{
+}
+
+algorithm_stats_t *genetic_algorithm_get_stats()
+{
+    return &genetic_algorithm.stats;
+}
+
 int main(int argc, char *argv[])
 {
     algorithm_t *genetic_algorithm;
@@ -140,7 +149,7 @@ int main(int argc, char *argv[])
             genetic_algorithm_pick_migrant,     // a wrapper around ga_get_entity_from_rank(pop,0)
             genetic_algorithm_ended,
             genetic_algorithm_get_population,   // TODO
-            genetic_algorithm_get_stats);       // TODO: wrapper around ga_fitness_stats()
+            genetic_algorithm_get_stats);
     parallel_evolution_set_algorithm(genetic_algorithm);
     parallel_evolution_set_migration_interval(100);
 
