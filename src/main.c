@@ -9,9 +9,41 @@
 
 #define MODULE_APP "genetic_algorithm-app"
 
-// forward declarations
-// in ga_core.c
-boolean ga_entity_setup(population *pop, entity *joe);
+static boolean ga_entity_setup(population *pop, entity *joe)
+  {
+  int	i;	/* Loop variable over the fitness vector. */
+
+  if (!joe)
+    die("Null pointer to entity structure passed.");
+  if (!pop->chromosome_constructor)
+    die("Chromosome constructor not defined.");
+
+/* Allocate chromosome structures. */
+  joe->chromosome = NULL;
+  pop->chromosome_constructor(pop, joe);
+
+/* Physical characteristics currently undefined. */
+  joe->data=NULL;
+
+/* No fitness evaluated yet. */
+  joe->fitness = GA_MIN_FITNESS;
+
+  if ( pop->fitness_dimensions > 0 )
+    { /* This population is being used for multiobjective optimisation. */
+    if ( !(joe->fitvector = s_malloc(sizeof(double)*pop->fitness_dimensions)) )
+      die("Unable to allocate memory");
+
+    /* Clear multiobjective fitness vector. */
+    for (i=0; i<pop->fitness_dimensions; i++)
+      joe->fitvector[i] = GA_MIN_FITNESS;
+    }
+  else
+    {
+    joe->fitvector = NULL;
+    }
+
+  return TRUE;
+  }
 
 extern double (*objective_function)(double*);           /* função de fitness (minimização) */
 
@@ -24,10 +56,10 @@ typedef struct genetic_algorithm {
 /* this struct is the "global namespace" of genetic_algorithm algorithm */
 genetic_algorithm_t genetic_algorithm;
 
-boolean assign_score(population *pop, entity *individual)
+boolean assign_score(population *pop, entity *entity)
 {
     // GAUL maximizes the fitness, the problem is of minimization, so:
-    individual->fitness = 1 / (1 + objective_function(individual->chromosome[0]));  // fitness in the interval (0, 1]
+    entity->fitness = 1 / (1 + objective_function(entity->chromosome[0]));  // fitness in the interval (0, 1]
     genetic_algorithm.stats.fitness_evals += 1;
     return TRUE;
 }
@@ -106,6 +138,21 @@ int genetic_algorithm_ended()
 
 status_t genetic_algorithm_get_population(population_t **pop2send)
 {
+    population *pop;
+    int i;
+
+    pop = genetic_algorithm.population;
+
+    if (population_create(pop2send, pop->size) != SUCCESS)
+        return FAIL;
+
+    for (i = 0; i < pop->size; ++i) {
+        (*pop2send)->individuals[i]->var = pop->entity_array[i]->chromosome[0];
+        (*pop2send)->individuals[i]->var_size = 50;
+    }
+    (*pop2send)->stats = &(genetic_algorithm.stats);
+
+    return SUCCESS;
 }
 
 algorithm_stats_t *genetic_algorithm_get_stats()
@@ -148,7 +195,7 @@ int main(int argc, char *argv[])
             genetic_algorithm_insert_migrant,   // a wrapper around ga_replace_by_fitness(population *pop, entity *child);
             genetic_algorithm_pick_migrant,     // a wrapper around ga_get_entity_from_rank(pop,0)
             genetic_algorithm_ended,
-            genetic_algorithm_get_population,   // TODO
+            genetic_algorithm_get_population,   // the population that will be sent to the main node
             genetic_algorithm_get_stats);
     parallel_evolution_set_algorithm(genetic_algorithm);
     parallel_evolution_set_migration_interval(100);

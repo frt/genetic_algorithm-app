@@ -5,7 +5,7 @@
 
 /* define here the fitness function that will be used by all algorithms of parallel_evolution */
 /* fitness function for generalized rastrigin function */
-double fitness_func(double *x)
+double objective_function(double *x)
 {
 	double sum = 0;
 	int i;
@@ -16,4 +16,4 @@ double fitness_func(double *x)
 	return A * n + sum;
 }
 
-double (*parallel_evolution_fitness_func)(double*) = fitness_func;
+//double (*parallel_evolution_fitness_func)(double*) = fitness_func;

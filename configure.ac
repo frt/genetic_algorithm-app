@@ -15,12 +15,19 @@ if test "$MPICC" = :; then
 fi
 
 # Checks for libraries.
-AC_CHECK_LIB(parallel_evolution,parallel_evolution_run,,AC_MSG_ERROR([libparallel_evolution.a not found]))
-#TODO: AC_CHECK_LIB() for GAUL library
+AC_CHECK_LIB([m], [cos], , AC_MSG_ERROR([unable to find the cos() function]))
+AC_CHECK_LIB([gaul], [ga_evolution], [], [
+  AC_MSG_ERROR([unable to find the ga_evolution() function])
+], [-lgaul_util])
+
+# TODO
+#AC_CHECK_LIB([parallel_evolution], [parallel_evolution_run], [],
+#             AC_MSG_ERROR([libparallel_evolution.a not found]))
 
 # Checks for header files.
-AC_CHECK_HEADER(parallel_evolution.h,,AC_MSG_ERROR([parallel_evolution.h not found]))
-#TODO: AC_CHECK_HEADER() for GAUL library
+AC_CHECK_HEADER([stddef.h],,AC_MSG_ERROR([stddef.h not found]))
+AC_CHECK_HEADER([parallel_evolution.h],,AC_MSG_ERROR([parallel_evolution.h not found]))
+AC_CHECK_HEADER([gaul.h],,AC_MSG_ERROR([gaul.h not found]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 
