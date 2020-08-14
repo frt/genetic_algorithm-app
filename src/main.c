@@ -1,6 +1,8 @@
 #include <parallel_evolution.h>
 #include <gaul.h>   // the genetic algorithm library
 #include <stddef.h>
+#include <float.h>
+#include <sys/random.h>
 
 #include "topology_parser/topology_parser.h"
 
@@ -22,17 +24,25 @@ genetic_algorithm_t genetic_algorithm;
 
 boolean assign_score(population *pop, entity *indiv)
 {
+    boolean ret;
+    double objective;
+
     // GAUL maximizes the fitness, the problem is of minimization, so:
-    indiv->fitness = 1 / (1 + objective_function_p(indiv->chromosome[0]));  // fitness in the interval (0, 1]
+    objective = objective_function_p(indiv->chromosome[0]);
+    ret = ga_entity_set_fitness(indiv, 1 / (1 + objective));   // fitness in the interval (0, 1]
+
     genetic_algorithm.stats.fitness_evals += 1;
-    return true;
+    if (objective < genetic_algorithm.stats.best_fitness)
+        genetic_algorithm.stats.best_fitness = objective;
+
+    return ret;
 }
 
 void genetic_algorithm_init()
 {
     population *pop;
 
-    genetic_algorithm.max_generations = 500;
+    genetic_algorithm.max_generations = 5000;
 
     pop = ga_genesis_double(
             250,                        /* const int              population_size */
@@ -56,6 +66,7 @@ void genetic_algorithm_init()
     ga_population_set_allele_max_double(pop, 12);
 
     genetic_algorithm.population = pop;
+    genetic_algorithm.stats.best_fitness = DBL_MAX; // it's a minimization problem
 }
 
 void genetic_algorithm_run_iterations(int generations)
@@ -142,6 +153,7 @@ int main(int argc, char *argv[])
     topology_t *topology;
     char *topology_file;
     char topology_file_default[] = "ring.topology";
+    unsigned int seed;
 
     if (argc == 2)  // program name + args count
         topology_file = argv[1];
@@ -175,7 +187,9 @@ int main(int argc, char *argv[])
     parallel_evolution_set_algorithm(genetic_algorithm);
     parallel_evolution_set_migration_interval(100);
 
-    random_tseed();
+    random_init();
+    getrandom(&seed, sizeof(unsigned int), 0);
+    random_seed(seed);
     ret = parallel_evolution_run(&argc, &argv);
 
     algorithm_destroy(&genetic_algorithm);
