@@ -16,4 +16,4 @@ double objective_function(double *x)
 	return A * n + sum;
 }
 
-//double (*parallel_evolution_fitness_func)(double*) = fitness_func;
+double (*objective_function_p)(double*) = objective_function;

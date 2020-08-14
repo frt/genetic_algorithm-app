@@ -9,43 +9,7 @@
 
 #define MODULE_APP "genetic_algorithm-app"
 
-static boolean ga_entity_setup(population *pop, entity *joe)
-  {
-  int	i;	/* Loop variable over the fitness vector. */
-
-  if (!joe)
-    die("Null pointer to entity structure passed.");
-  if (!pop->chromosome_constructor)
-    die("Chromosome constructor not defined.");
-
-/* Allocate chromosome structures. */
-  joe->chromosome = NULL;
-  pop->chromosome_constructor(pop, joe);
-
-/* Physical characteristics currently undefined. */
-  joe->data=NULL;
-
-/* No fitness evaluated yet. */
-  joe->fitness = GA_MIN_FITNESS;
-
-  if ( pop->fitness_dimensions > 0 )
-    { /* This population is being used for multiobjective optimisation. */
-    if ( !(joe->fitvector = s_malloc(sizeof(double)*pop->fitness_dimensions)) )
-      die("Unable to allocate memory");
-
-    /* Clear multiobjective fitness vector. */
-    for (i=0; i<pop->fitness_dimensions; i++)
-      joe->fitvector[i] = GA_MIN_FITNESS;
-    }
-  else
-    {
-    joe->fitvector = NULL;
-    }
-
-  return TRUE;
-  }
-
-extern double (*objective_function)(double*);           /* função de fitness (minimização) */
+extern double (*objective_function_p)(double*);           /* função de fitness (minimização) */
 
 typedef struct genetic_algorithm {
     population *population;
@@ -56,23 +20,20 @@ typedef struct genetic_algorithm {
 /* this struct is the "global namespace" of genetic_algorithm algorithm */
 genetic_algorithm_t genetic_algorithm;
 
-boolean assign_score(population *pop, entity *entity)
+boolean assign_score(population *pop, entity *indiv)
 {
     // GAUL maximizes the fitness, the problem is of minimization, so:
-    entity->fitness = 1 / (1 + objective_function(entity->chromosome[0]));  // fitness in the interval (0, 1]
+    indiv->fitness = 1 / (1 + objective_function_p(indiv->chromosome[0]));  // fitness in the interval (0, 1]
     genetic_algorithm.stats.fitness_evals += 1;
-    return TRUE;
+    return true;
 }
 
 void genetic_algorithm_init()
 {
     population *pop;
 
-    genetic_algorithm.max_generations = 50000;
+    genetic_algorithm.max_generations = 500;
 
-    pop = genetic_algorithm.population;
-    ga_population_set_allele_min_double(pop, -12);
-    ga_population_set_allele_max_double(pop, 12);
     pop = ga_genesis_double(
             250,                        /* const int              population_size */
             1,                          /* const int              num_chromo */
@@ -91,6 +52,10 @@ void genetic_algorithm_init()
             NULL,                       /* GAreplace              replace */
             NULL                        /* void *                 userdata */
             );
+    ga_population_set_allele_min_double(pop, -12);
+    ga_population_set_allele_max_double(pop, 12);
+
+    genetic_algorithm.population = pop;
 }
 
 void genetic_algorithm_run_iterations(int generations)
@@ -107,8 +72,18 @@ void genetic_algorithm_insert_migrant(migrant_t *migrant)
     pop = genetic_algorithm.population;
 
     // create new entity
-    new = (entity *)mem_chunk_alloc(pop->entity_chunk);
-    ga_entity_setup(pop, new);
+    new = (entity *)malloc(sizeof(entity));
+
+/* Allocate chromosome structures. */
+  new->chromosome = (void **)malloc(sizeof(double *));
+  new->chromosome[0] = (double *)malloc(50 * sizeof(double));
+//  pop->chromosome_constructor(pop, new);
+
+/* Physical characteristics currently undefined. */
+  new->data=NULL;
+
+/* No fitness evaluated yet. */
+  new->fitness = GA_MIN_FITNESS;
 
     // asign chromossome
     for (i = 0; i < migrant->var_size; ++i) {
@@ -147,7 +122,7 @@ status_t genetic_algorithm_get_population(population_t **pop2send)
         return FAIL;
 
     for (i = 0; i < pop->size; ++i) {
-        (*pop2send)->individuals[i]->var = pop->entity_array[i]->chromosome[0];
+        (*pop2send)->individuals[i]->var = (double *)(pop->entity_iarray[i]->chromosome[0]);
         (*pop2send)->individuals[i]->var_size = 50;
     }
     (*pop2send)->stats = &(genetic_algorithm.stats);
@@ -200,6 +175,7 @@ int main(int argc, char *argv[])
     parallel_evolution_set_algorithm(genetic_algorithm);
     parallel_evolution_set_migration_interval(100);
 
+    random_tseed();
     ret = parallel_evolution_run(&argc, &argv);
 
     algorithm_destroy(&genetic_algorithm);
