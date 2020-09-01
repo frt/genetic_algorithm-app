@@ -76,7 +76,7 @@ void genetic_algorithm_run_iterations(int generations)
 
 void genetic_algorithm_insert_migrant(migrant_t *migrant)
 {
-    entity *new;
+    entity *new, *old;
     population *pop;
     int i;
 
@@ -85,16 +85,16 @@ void genetic_algorithm_insert_migrant(migrant_t *migrant)
     // create new entity
     new = (entity *)malloc(sizeof(entity));
 
-/* Allocate chromosome structures. */
-  new->chromosome = (void **)malloc(sizeof(double *));
-  new->chromosome[0] = (double *)malloc(50 * sizeof(double));
-//  pop->chromosome_constructor(pop, new);
+    /* Allocate chromosome structures. */
+    new->chromosome = (void **)malloc(sizeof(double *));
+    new->chromosome[0] = (double *)malloc(50 * sizeof(double));
+    //  pop->chromosome_constructor(pop, new);
 
-/* Physical characteristics currently undefined. */
-  new->data=NULL;
+    /* Physical characteristics currently undefined. */
+    new->data=NULL;
 
-/* No fitness evaluated yet. */
-  new->fitness = GA_MIN_FITNESS;
+    /* No fitness evaluated yet. */
+    new->fitness = GA_MIN_FITNESS;
 
     // asign chromossome
     for (i = 0; i < migrant->var_size; ++i) {
@@ -103,7 +103,12 @@ void genetic_algorithm_insert_migrant(migrant_t *migrant)
     assign_score(pop, new);
 
     // insert into population
-    ga_replace_by_fitness(pop, new);
+    old = ga_get_entity_from_rank(pop, pop->size - 1);
+    if (new->fitness > old->fitness) {
+        ga_entity_blank(pop, old);
+        ga_entity_copy(pop, old, new);
+        ga_population_score_and_sort(pop);
+    }
 }
 
 void genetic_algorithm_pick_migrant(migrant_t *migrant)
