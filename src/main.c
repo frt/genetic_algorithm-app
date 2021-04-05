@@ -4,8 +4,6 @@
 #include <float.h>
 #include <sys/random.h>
 
-#include "topology_parser/topology_parser.h"
-
 #define ERROR_TOPOLOGY_CREATE 1
 #define ERROR_TOPOLOGY_PARSE 2
 
@@ -38,16 +36,24 @@ boolean assign_score(population *pop, entity *indiv)
     return ret;
 }
 
-void genetic_algorithm_init()
+void genetic_algorithm_init(config_t *config)
 {
     population *pop;
+    int i, population_size, allele_min, allele_max, number_of_dimensions;
+    double aux;
 
-    genetic_algorithm.max_generations = 5000;
+    parallel_evolution_config_lookup_int(config,
+            "genetic_algorithm.max_generations",
+            &genetic_algorithm.max_generations);
+    parallel_evolution_config_lookup_int(config,
+            "genetic_algorithm.population_size",
+            &population_size);
+    number_of_dimensions = parallel_evolution_get_number_of_dimensions();
 
     pop = ga_genesis_double(
-            250,                        /* const int              population_size */
+            population_size,            /* const int              population_size */
             1,                          /* const int              num_chromo */
-            50,                         /* const int              len_chromo */
+            number_of_dimensions,       /* const int              len_chromo */
             NULL,                       /* GAgeneration_hook      generation_hook */
             NULL,                       /* GAiteration_hook       iteration_hook */
             NULL,                       /* GAdata_destructor      data_destructor */
@@ -62,8 +68,20 @@ void genetic_algorithm_init()
             NULL,                       /* GAreplace              replace */
             NULL                        /* void *                 userdata */
             );
-    ga_population_set_allele_min_double(pop, -12);
-    ga_population_set_allele_max_double(pop, 12);
+
+    allele_min = parallel_evolution_get_limit_min(0);
+    allele_max = parallel_evolution_get_limit_max(0);
+    for (i = 1; i < number_of_dimensions; ++i) {
+        aux = parallel_evolution_get_limit_min(i);
+        if (aux < allele_min)
+            allele_min = aux;
+
+        aux = parallel_evolution_get_limit_max(i);
+        if (aux > allele_max)
+            allele_max = aux;
+    }
+    ga_population_set_allele_min_double(pop, allele_min);
+    ga_population_set_allele_max_double(pop, allele_max);
 
     genetic_algorithm.population = pop;
     genetic_algorithm.stats.best_fitness = DBL_MAX; // it's a minimization problem
@@ -87,7 +105,7 @@ void genetic_algorithm_insert_migrant(migrant_t *migrant)
 
     /* Allocate chromosome structures. */
     new->chromosome = (void **)malloc(sizeof(double *));
-    new->chromosome[0] = (double *)malloc(50 * sizeof(double));
+    new->chromosome[0] = (double *)malloc(parallel_evolution_get_number_of_dimensions() * sizeof(double));
     //  pop->chromosome_constructor(pop, new);
 
     /* Physical characteristics currently undefined. */
@@ -139,7 +157,7 @@ status_t genetic_algorithm_get_population(population_t **pop2send)
 
     for (i = 0; i < pop->size; ++i) {
         (*pop2send)->individuals[i]->var = (double *)(pop->entity_iarray[i]->chromosome[0]);
-        (*pop2send)->individuals[i]->var_size = 50;
+        (*pop2send)->individuals[i]->var_size = parallel_evolution_get_number_of_dimensions();
     }
     (*pop2send)->stats = &(genetic_algorithm.stats);
 
@@ -155,32 +173,8 @@ int main(int argc, char *argv[])
 {
     algorithm_t *genetic_algorithm;
     int ret;
-    topology_t *topology;
-    char *topology_file;
-    char topology_file_default[] = "ring.topology";
     unsigned int seed;
 
-    if (argc == 2)  // program name + args count
-        topology_file = argv[1];
-    else
-        topology_file = topology_file_default;
-
-    /* create the topology */
-    if (topology_create(&topology) != SUCCESS) {
-        parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be created. Quit.");
-        return ERROR_TOPOLOGY_CREATE;
-    }
-
-    /* parse topology from file */
-    if (topology_parser_parse(topology, topology_file) != SUCCESS) {
-        topology_destroy(&topology);
-        parallel_evolution_log(LOG_PRIORITY_ERR, MODULE_APP, "Topology could not be parsed. This is the end...");
-        return ERROR_TOPOLOGY_PARSE;
-    }
-
-    parallel_evolution_set_topology(topology);
-
-    parallel_evolution_set_number_of_dimensions(50);
     algorithm_create(&genetic_algorithm,
             genetic_algorithm_init,             // a wrapper around ga_genesis_double()
             genetic_algorithm_run_iterations,   // make a wrapper around ga_evolution()
@@ -190,7 +184,6 @@ int main(int argc, char *argv[])
             genetic_algorithm_get_population,   // the population that will be sent to the main node
             genetic_algorithm_get_stats);
     parallel_evolution_set_algorithm(genetic_algorithm);
-    parallel_evolution_set_migration_interval(100);
 
     random_init();
     getrandom(&seed, sizeof(unsigned int), 0);
@@ -198,7 +191,6 @@ int main(int argc, char *argv[])
     ret = parallel_evolution_run(&argc, &argv);
 
     algorithm_destroy(&genetic_algorithm);
-    topology_destroy(&topology);
 
     return ret;
 }
