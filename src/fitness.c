@@ -1,11 +1,11 @@
 #include <math.h>
 
 #define A 10	/* arbitrary constant, default for rastrigin */
-#define n 50	/* number of dimensions */
+//#define n 50	/* number of dimensions */
 
 /* define here the fitness function that will be used by all algorithms of parallel_evolution */
 /* fitness function for generalized rastrigin function */
-double objective_function(double *x)
+double objective_function(const double *x, int n)
 {
 	double sum = 0;
 	int i;
@@ -16,4 +16,4 @@ double objective_function(double *x)
 	return A * n + sum;
 }
 
-double (*objective_function_p)(double*) = objective_function;
+double (*objective_function_p)(const double *x, int n) = objective_function;

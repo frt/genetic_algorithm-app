@@ -4,12 +4,9 @@
 #include <float.h>
 #include <sys/random.h>
 
-#define ERROR_TOPOLOGY_CREATE 1
-#define ERROR_TOPOLOGY_PARSE 2
-
 #define MODULE_APP "genetic_algorithm-app"
 
-extern double (*objective_function_p)(double*);           /* função de fitness (minimização) */
+extern double (*objective_function_p)(const double *x, int n);           /* função de fitness (minimização) */
 
 typedef struct genetic_algorithm {
     population *population;
@@ -26,7 +23,7 @@ boolean assign_score(population *pop, entity *indiv)
     double objective;
 
     // GAUL maximizes the fitness, the problem is of minimization, so:
-    objective = objective_function_p(indiv->chromosome[0]);
+    objective = objective_function_p(indiv->chromosome[0], parallel_evolution_get_number_of_dimensions());
     ret = ga_entity_set_fitness(indiv, 1 / (1 + objective));   // fitness in the interval (0, 1]
 
     genetic_algorithm.stats.fitness_evals += 1;
